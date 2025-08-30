@@ -12,7 +12,6 @@ export default {
                     model: "gemma-3-27b-it",
                     contents: "Roses are red, violets are blue...",
                 });
-                console.log(response)
 
                 return new Response(
                     JSON.stringify({ result: response.text }),
@@ -27,7 +26,6 @@ export default {
         }
         
         if(url.pathname === "/") {
-            console.log(env.GOOGLE_API_KEY)
             return new Response("Welcome to the GenAI API", { status: 200 });
         }
         return new Response("Not Found", { status: 404 });
