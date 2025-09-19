@@ -96,7 +96,7 @@ const yourResumeData = `
     -  Languages Known: English, Tamil
     -  Hobbies: Coding, Reading Tech Blogs
   --- END KNOWLEDGE BASE ---
-  User Prompt:
+  Conversation flow between user and ai_gemini role in json format:
   `
 
 export default {
@@ -104,7 +104,6 @@ export default {
     async fetch(request, env) {
         const url = new URL(request.url);
         const corsHeaders = getCorsHeaders(request, env);
-        console.log("Request received:", env.API_TOKEN, request.headers.get("X-Api-Key"));
 
         if (request.method === 'OPTIONS') {
             return new Response(null, { headers: corsHeaders });
@@ -119,7 +118,7 @@ export default {
                 const ai = new GoogleGenAI({ apiKey: env.GOOGLE_API_KEY });          
                 const response = await ai.models.generateContent({
                     model: "gemma-3-27b-it",
-                    contents: yourResumeData + "\n\n" + requestBody.userPrompt,
+                    contents: yourResumeData + "\n" + requestBody.userPrompt,
                 });
 
                 return new Response(
@@ -133,7 +132,7 @@ export default {
                 );
             }
         }
-        
+
         if(url.pathname === "/") {
             return new Response("Welcome to the GenAI API", { status: 200, headers: {...corsHeaders, "Content-Type": "text/plain" } });
         }
