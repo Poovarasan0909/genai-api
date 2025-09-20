@@ -3,7 +3,7 @@ import { GoogleGenAI  } from "@google/genai";
 
 const allowedOrigins = [
   'http://localhost:4000',
-  'https://my-profile-d8z.pages.dev/'
+  'https://my-profile-d8z.pages.dev'
 ];
 const getCorsHeaders = (request, env) => {
     const origin = request.headers.get("Origin");
