@@ -1,4 +1,5 @@
 import { GoogleGenAI  } from "@google/genai";
+const { google } = require("googleapis");
 
 
 const allowedOrigins = [
@@ -132,6 +133,78 @@ export default {
                 );
             }
         }
+    if (url.pathname === "/google_sheets_webhook" && request.method === "POST") {
+      try {
+        const requestBody = await request.json();
+        const auth = new google.auth.GoogleAuth({
+          credentials: {
+            client_email: env.GOOGLE_CLIENT_EMAIL,
+            private_key: env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          },
+          scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        })
+        const sheets = google.sheets({ version: "v4", auth });
+        const spreadsheetId = "1GdobHtkv3htLyRI5rrR2FUXgeiimTKIzjuEFeLN1ajM";
+
+        const header = ["Id", "Session Id", "Logged At", "Location", "TimeZone", "OS", "Browser", "Screen Size", "Window Size", "Device Type", "As Organization"];
+        // get sheet data 
+        const getSheetsData = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: "user_logs!A:K",
+        })
+        const rows = getSheetsData.data.values || [];
+        let id = 1;
+        if (rows && rows.length > 1) {
+          const lastRow = rows[rows.length - 1];
+          const lastId = parseInt(lastRow[0]) + 1;
+          id = lastId;
+        }
+        const location = request.cf ? request.cf.city + ", " + request.cf.region + ", " + request.cf.country : "Unknown";
+        const row = [
+          id,
+          requestBody.session_id,
+          requestBody.logged_at,
+          location,
+          requestBody.timezone,
+          requestBody.platform,
+          requestBody.browserName,
+          requestBody.screen_size,
+          requestBody.window_size,
+          requestBody.deviceType,
+          request?.cf ? request.cf?.asOrganization : "Unknown",
+        ]
+
+        try {
+          if (rows.length === 0) {
+            await sheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: "user_logs!A1",
+              valueInputOption: "RAW",
+              resource: { values: [header, row] },
+            });
+          } else {
+            await sheets.spreadsheets.values.append({
+              spreadsheetId,
+              range: "user_logs!A:K",
+              resource: { values: [row] },
+              valueInputOption: "RAW",
+            });
+          }
+        } catch (error) {
+          console.error("Error updating spreadsheet:", error);
+        }
+        return new Response(
+          JSON.stringify({ success: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (error) {
+        console.error("Error in webhook:", error);
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          { headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
 
         if(url.pathname === "/") {
             return new Response("Welcome to the GenAI API", { status: 200, headers: {...corsHeaders, "Content-Type": "text/plain" } });

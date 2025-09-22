@@ -8,6 +8,7 @@
 	"main": "index.js",
 	"compatibility_date": "2025-08-29",
 	"compatibility_flags": [
+		"nodejs_compat",
 		"global_fetch_strictly_public"
 	],
 	"observability": {
