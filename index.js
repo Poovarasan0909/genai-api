@@ -1,5 +1,6 @@
 import { GoogleGenAI  } from "@google/genai";
 const { google } = require("googleapis");
+import { credentialRouters } from "./credential";
 
 
 const allowedOrigins = [
@@ -109,7 +110,9 @@ export default {
         if (request.method === 'OPTIONS') {
             return new Response(null, { headers: corsHeaders });
         }
-        if(request.headers.get("X-Api-Key") !== env.API_TOKEN) {
+        const selfRequestPaths = ["/credentials"];
+        
+        if(!selfRequestPaths.includes(url.pathname) && request.headers.get("X-Api-Key") !== env.API_TOKEN) {
             return new Response("Unauthorized", { status: 401, headers: { "Content-Type": "text/plain" } });
         }
 
@@ -133,6 +136,7 @@ export default {
                 );
             }
         }
+
     if (url.pathname === "/google_sheets_webhook" && request.method === "POST") {
       try {
         const requestBody = await request.json();
@@ -205,6 +209,10 @@ export default {
         );
       }
     }
+
+      if(url.pathname === "/credentials") {
+          return credentialRouters(url, request, env, corsHeaders);
+      }
 
         if(url.pathname === "/") {
             return new Response("Welcome to the GenAI API", { status: 200, headers: {...corsHeaders, "Content-Type": "text/plain" } });
