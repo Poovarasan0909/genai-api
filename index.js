@@ -148,7 +148,15 @@ export default {
           scopes: ['https://www.googleapis.com/auth/spreadsheets'],
         })
         const sheets = google.sheets({ version: "v4", auth });
-        const spreadsheetId = "1GdobHtkv3htLyRI5rrR2FUXgeiimTKIzjuEFeLN1ajM";
+
+        const spreadsheetId = await env?.CREDENTIALS_KV?.get("GOOGLE_SHEET_ID");
+
+        if(!spreadsheetId) {
+          return new Response(
+            JSON.stringify({ error: "Google Sheet ID is not set in KV storage." }),
+            { headers: { "Content-Type": "application/json" } }
+          );
+        }
 
         const header = ["Id", "Session Id", "Logged At", "Location", "TimeZone", "OS", "Browser", "Screen Size", "Window Size", "Device Type", "As Organization"];
         // get sheet data 
