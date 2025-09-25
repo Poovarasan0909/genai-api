@@ -1,0 +1,5 @@
+Commands 
+
+Creating KV => npx wrangler kv namespace create YOUR_KV
+
+
