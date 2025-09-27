@@ -1,6 +1,6 @@
 import { GoogleGenAI  } from "@google/genai";
 const { google } = require("googleapis");
-import { credentialRouters } from "./credential";
+import { credentialRouters, kvGet} from "./credential";
 
 
 const allowedOrigins = [
@@ -132,7 +132,7 @@ export default {
             } catch (error) {
                 return new Response(
                     JSON.stringify({ error: error.message }),
-                    { headers: { "Content-Type": "application/json" } }
+                    { status: 500,headers: {...corsHeaders, "Content-Type": "application/json" } }
                 );
             }
         }
@@ -149,12 +149,11 @@ export default {
         })
         const sheets = google.sheets({ version: "v4", auth });
 
-        const spreadsheetId = await env?.CREDENTIALS_KV?.get("GOOGLE_SHEET_ID");
-
+        const spreadsheetId = await kvGet(env, "GOOGLE_SHEET_ID");;
         if(!spreadsheetId) {
           return new Response(
             JSON.stringify({ error: "Google Sheet ID is not set in KV storage." }),
-            { headers: { "Content-Type": "application/json" } }
+            { status: 500,headers: {...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
@@ -213,7 +212,7 @@ export default {
         console.error("Error in webhook:", error);
         return new Response(
           JSON.stringify({ error: error.message }),
-          { headers: { "Content-Type": "application/json" } }
+          { status: 500, headers: { ...corsHeaders,  "Content-Type": "application/json" } }
         );
       }
     }
