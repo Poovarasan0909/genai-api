@@ -1,21 +1,30 @@
 import credentialHtml from './credentialFormPage.html';
 
 export async function credentialRouters(url: URL, request: Request, env: any, corsHeaders: any) {
+      let GOOGLE_SHEET_ID_VALUE = "";
+      if (env.NODE_ENV === "production") {
+        GOOGLE_SHEET_ID_VALUE = await kvGet(env, "GOOGLE_SHEET_ID");
+      } else {
+        GOOGLE_SHEET_ID_VALUE = await kvGet(env, "DEV_GOOGLE_SHEET_ID");
+      }
 
-        const content = await env?.CREDENTIALS_KV?.get("GOOGLE_SHEET_ID");
-        const renderedHtml = credentialHtml.replace("{{content}}", content || "")
-                                          .replace("{{env.GOOGLE_CLIENT_EMAIL}}", env.GOOGLE_CLIENT_EMAIL || "");
+      const renderedHtml = credentialHtml.replace("{{content}}", GOOGLE_SHEET_ID_VALUE || "")
+                                        .replace("{{env.GOOGLE_CLIENT_EMAIL}}", env.GOOGLE_CLIENT_EMAIL || "");
       if(request.method === "GET") {
         return new Response(
           renderedHtml,
           { headers: { ...corsHeaders, "Content-Type": "text/html" } }
         );
-    } else if(request.method === "POST") {
+      } else if(request.method === "POST") {
         const data = await request.json();
             const sheetId = await data.google_sheet_id;
             env.CREDENTIALS_KV.put("GOOGLE_SHEET_ID", sheetId);
-            await kvPut(env, "GOOGLE_SHEET_ID", sheetId);
-            const storedValue = await kvGet(env, "GOOGLE_SHEET_ID");
+
+            if(env.NODE_ENV === "production") {
+               await kvPut(env, "GOOGLE_SHEET_ID", sheetId);
+            } else {
+               await kvPut(env, "DEV_GOOGLE_SHEET_ID", sheetId);
+            }
             return new Response(`Received sheet ID: ${sheetId}`, { status: 200, headers: { ...corsHeaders, "Content-Type": "text/plain" } });
     }
 }
@@ -52,9 +61,6 @@ export async function kvGet(env: any, key: string) {
     headers: {
       'Authorization': `Bearer ${apiToken}`
     }
-  })
-  if (!response.ok) {
-    throw new Error(`Failed to read KV: ${response.status} ${response.statusText}`);
-  }
+  });
   return await response.text();
 }

@@ -105,6 +105,8 @@ export default {
 
     async fetch(request, env) {
         const url = new URL(request.url);
+        env.NODE_ENV = url.origin.includes("localhost") ? "development" : "production"; 
+
         const corsHeaders = getCorsHeaders(request, env);
 
         if (request.method === 'OPTIONS') {
@@ -148,8 +150,12 @@ export default {
           scopes: ['https://www.googleapis.com/auth/spreadsheets'],
         })
         const sheets = google.sheets({ version: "v4", auth });
-
-        const spreadsheetId = await kvGet(env, "GOOGLE_SHEET_ID");;
+        let spreadsheetId;
+        if(env.NODE_ENV === "development") {
+           spreadsheetId = await kvGet(env, "GOOGLE_SHEET_ID");
+        } else {
+           spreadsheetId = await kvGet(env, "DEV_GOOGLE_SHEET_ID");
+        }
         if(!spreadsheetId) {
           return new Response(
             JSON.stringify({ error: "Google Sheet ID is not set in KV storage." }),
