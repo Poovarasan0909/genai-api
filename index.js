@@ -105,7 +105,12 @@ export default {
 
     async fetch(request, env) {
         const url = new URL(request.url);
-        env.NODE_ENV = url.origin.includes("localhost") ? "development" : "production"; 
+        const hostname = url.hostname;
+        if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.")) {
+          env.NODE_ENV = "development";
+        } else {
+          env.NODE_ENV = "production";
+        }
 
         const corsHeaders = getCorsHeaders(request, env);
 
@@ -152,9 +157,9 @@ export default {
         const sheets = google.sheets({ version: "v4", auth });
         let spreadsheetId;
         if(env.NODE_ENV === "development") {
-           spreadsheetId = await kvGet(env, "GOOGLE_SHEET_ID");
-        } else {
            spreadsheetId = await kvGet(env, "DEV_GOOGLE_SHEET_ID");
+        } else {
+           spreadsheetId = await kvGet(env, "GOOGLE_SHEET_ID");
         }
         if(!spreadsheetId) {
           return new Response(
