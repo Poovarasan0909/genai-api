@@ -1,6 +1,7 @@
 import { GoogleGenAI  } from "@google/genai";
 const { google } = require("googleapis");
 import { credentialRouters, kvGet} from "./credential";
+import CryptoJS from 'crypto-js';
 
 
 const allowedOrigins = [
@@ -123,17 +124,33 @@ export default {
             return new Response("Unauthorized", { status: 401, headers: { "Content-Type": "text/plain" } });
         }
 
+        //Decrypt the incoming payload and process the request
+        const secretKey = env.REQUEST_SECRET_KEY;
+        const contentLength = request.headers.get("content-length");
+        let decryptedPayload = {};
+        if (contentLength && parseInt(contentLength) > 0) {
+          if(!secretKey) {
+            return new Response("Server Misconfiguration: Request Secret key is missing.", { status: 500, headers: {...corsHeaders, "Content-Type": "text/plain" } });
+          }
+          const requestData = await request.json();   
+          const {payload, iv: ivString} = requestData;
+          const iv = CryptoJS.enc.Hex.parse(ivString);
+          const decryptedBytes = CryptoJS.AES.decrypt(payload, secretKey, { iv: iv });
+          decryptedPayload = JSON.parse(decryptedBytes.toString(CryptoJS.enc.Utf8));
+        }
+
+        // Handle Requests based on the path and method.
         if (url.pathname === "/generate" && request.method === "POST") {
             try {
-                const requestBody = await request.json();
                 const ai = new GoogleGenAI({ apiKey: env.GOOGLE_API_KEY });          
                 const response = await ai.models.generateContent({
                     model: "gemma-3-27b-it",
-                    contents: yourResumeData + "\n" + requestBody.userPrompt,
+                    contents: yourResumeData + "\n" + decryptedPayload?.userPrompt,
                 });
-
+                const responseIv = CryptoJS.lib.WordArray.random(16);
+                const encryptedData = CryptoJS.AES.encrypt(JSON.stringify({ result: response.text }), secretKey, { iv: responseIv }).toString();
                 return new Response(
-                    JSON.stringify({ result: response.text }),
+                    JSON.stringify({ response: encryptedData, iv: responseIv.toString()}),
                     { headers: {...corsHeaders, "Content-Type": "application/json" } }
                 );
             } catch (error) {
@@ -146,7 +163,7 @@ export default {
 
     if (url.pathname === "/google_sheets_webhook" && request.method === "POST") {
       try {
-        const requestBody = await request.json();
+        const requestBody = decryptedPayload;
         const auth = new google.auth.GoogleAuth({
           credentials: {
             client_email: env.GOOGLE_CLIENT_EMAIL,

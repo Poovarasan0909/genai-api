@@ -17,6 +17,7 @@
   "dependencies": {
     "@cloudflare/vitest-pool-workers": "^0.8.19",
     "@google/genai": "^1.15.0",
+    "crypto-js": "^4.2.0",
     "dotenv": "^17.2.1",
     "fs": "^0.0.1-security",
     "googleapis": "^160.0.0",
